@@ -1,0 +1,6 @@
+{
+  "name": "FOODOO — فودو",
+  "description": "منصة فودو التجريبية للمطاعم والمقاهي ونظام فودو سكوادز للطلب الجماعي في المملكة العربية السعودية — FOODOO Zero-Commission Restaurant, Café & Squads Ordering Platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

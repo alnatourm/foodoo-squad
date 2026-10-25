@@ -1,0 +1,581 @@
+{
+  "entities": {
+    "Business": {
+      "title": "Business",
+      "description": "A participating restaurant or cafe on the FOODOO platform.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nameAr": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "nameEn": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "type": {
+          "type": "string",
+          "enum": ["restaurant", "cafe"]
+        },
+        "locationAr": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "locationEn": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "descriptionAr": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "descriptionEn": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "categories": {
+          "type": "array",
+          "description": "Menu categories supported by this business (max 10)."
+        },
+        "isOpen": {
+          "type": "boolean"
+        },
+        "prepTimeMinutes": {
+          "type": "number"
+        },
+        "minOrderSar": {
+          "type": "number"
+        },
+        "deliveryFeeSar": {
+          "type": "number"
+        },
+        "isDemoData": {
+          "type": "boolean"
+        },
+        "managerUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "nameAr",
+        "nameEn",
+        "type",
+        "locationAr",
+        "locationEn",
+        "descriptionAr",
+        "descriptionEn",
+        "categories",
+        "isOpen",
+        "prepTimeMinutes",
+        "minOrderSar",
+        "deliveryFeeSar",
+        "isDemoData",
+        "managerUid",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A food or beverage menu item belonging to a specific FOODOO business.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "businessId": {
+          "type": "string",
+          "enum": ["foodoo-restaurant", "foodoo-cafe"]
+        },
+        "nameAr": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "nameEn": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "descriptionAr": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "descriptionEn": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "priceSar": {
+          "type": "number"
+        },
+        "calories": {
+          "type": "number"
+        },
+        "imageKey": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "isAvailable": {
+          "type": "boolean"
+        },
+        "isFeatured": {
+          "type": "boolean"
+        },
+        "isPopular": {
+          "type": "boolean"
+        },
+        "isDemoData": {
+          "type": "boolean"
+        },
+        "customizationLabelAr": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "customizationLabelEn": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "customizationOptions": {
+          "type": "array",
+          "description": "Optional customization choices (max 8)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "businessId",
+        "nameAr",
+        "nameEn",
+        "descriptionAr",
+        "descriptionEn",
+        "category",
+        "priceSar",
+        "calories",
+        "imageKey",
+        "isAvailable",
+        "isFeatured",
+        "isPopular",
+        "isDemoData",
+        "customizationLabelAr",
+        "customizationLabelEn",
+        "customizationOptions",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public customer and pilot role profile isolated from PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "activeSquadId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "assignedBusinessId": {
+          "type": "string",
+          "enum": ["", "foodoo-restaurant", "foodoo-cafe"]
+        },
+        "completedOrdersCount": {
+          "type": "number"
+        },
+        "squadPointsContributed": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "activeSquadId",
+        "assignedBusinessId",
+        "completedOrdersCount",
+        "squadPointsContributed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Strictly isolated PII document for a user (phone, email, address).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "defaultAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "phone",
+        "defaultAddress",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer food/beverage order associated with a single business and optional Squad.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "merchantUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "customerPhone": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 20
+        },
+        "businessId": {
+          "type": "string",
+          "enum": ["foodoo-restaurant", "foodoo-cafe"]
+        },
+        "businessNameAr": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "businessNameEn": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "fulfillmentType": {
+          "type": "string",
+          "enum": ["pickup", "delivery"]
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["DEMO_PAYMENT_ONLY"]
+        },
+        "itemsSummary": {
+          "type": "array",
+          "description": "Bounded list of formatted line-item summaries (max 20)."
+        },
+        "itemsCount": {
+          "type": "number"
+        },
+        "subtotalSar": {
+          "type": "number"
+        },
+        "deliveryFeeSar": {
+          "type": "number"
+        },
+        "totalSar": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "accepted",
+            "preparing",
+            "ready",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "squadId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "squadName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "squadPointAwarded": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderNumber",
+        "customerId",
+        "merchantUid",
+        "customerName",
+        "customerPhone",
+        "businessId",
+        "businessNameAr",
+        "businessNameEn",
+        "fulfillmentType",
+        "deliveryAddress",
+        "notes",
+        "paymentMethod",
+        "itemsSummary",
+        "itemsCount",
+        "subtotalSar",
+        "deliveryFeeSar",
+        "totalSar",
+        "status",
+        "squadId",
+        "squadName",
+        "squadPointAwarded",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Squad": {
+      "title": "Squad",
+      "description": "A social team of customers who earn points together from completed orders.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Office", "University", "Friends", "Family"]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "inviteCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "creatorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "creatorName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "memberCount": {
+          "type": "number"
+        },
+        "weeklyPoints": {
+          "type": "number"
+        },
+        "totalPoints": {
+          "type": "number"
+        },
+        "weeklyGoal": {
+          "type": "number"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "isDemoData": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category",
+        "description",
+        "inviteCode",
+        "creatorId",
+        "creatorName",
+        "memberCount",
+        "weeklyPoints",
+        "totalPoints",
+        "weeklyGoal",
+        "isActive",
+        "isDemoData",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SquadMember": {
+      "title": "SquadMember",
+      "description": "Membership record inside a Squad subcollection.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "squadId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["captain", "member"]
+        },
+        "pointsContributed": {
+          "type": "number"
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "squadId",
+        "displayName",
+        "role",
+        "pointsContributed",
+        "joinedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/businesses/{businessId}": {
+      "schema": {
+        "$ref": "#/entities/Business"
+      },
+      "description": "Pilot businesses (foodoo-restaurant and foodoo-cafe)."
+    },
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Menu items belonging to foodoo-restaurant or foodoo-cafe."
+    },
+    "/user_profiles/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Public customer/merchant role profile isolated from PII."
+    },
+    "/user_private/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivate"
+      },
+      "description": "Strictly owner-only PII storage for phone, email, and delivery address."
+    },
+    "/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
+      },
+      "description": "Customer orders isolated to the ordering customer and the assigned business manager."
+    },
+    "/squads/{squadId}": {
+      "schema": {
+        "$ref": "#/entities/Squad"
+      },
+      "description": "Foodoo Squads teams and leaderboard standings."
+    },
+    "/squads/{squadId}/members/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/SquadMember"
+      },
+      "description": "Subcollection of Squad members governed by parent Squad master gate."
+    }
+  }
+}

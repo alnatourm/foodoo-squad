@@ -1,0 +1,586 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 1. GLOBAL SAFETY NET (Default-Deny Catch-All)
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // 2. CORE SECURITY PRIMITIVES
+    // =========================================================================
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'alnatour.m@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isAssignedMerchant(businessId) {
+      return isVerifiedUser() && (
+        isAdmin() ||
+        (
+          exists(/databases/$(database)/documents/user_profiles/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.assignedBusinessId == businessId
+        )
+      );
+    }
+
+    // =========================================================================
+    // 3. ENTITY VALIDATION BLUEPRINTS (Anti-Update-Gap)
+    // =========================================================================
+
+    function isValidBusiness(data) {
+      return data.keys().hasAll([
+        'id', 'nameAr', 'nameEn', 'type', 'locationAr', 'locationEn',
+        'descriptionAr', 'descriptionEn', 'categories', 'isOpen',
+        'prepTimeMinutes', 'minOrderSar', 'deliveryFeeSar',
+        'isDemoData', 'managerUid', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'nameAr', 'nameEn', 'type', 'locationAr', 'locationEn',
+        'descriptionAr', 'descriptionEn', 'categories', 'isOpen',
+        'prepTimeMinutes', 'minOrderSar', 'deliveryFeeSar',
+        'isDemoData', 'managerUid', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      (data.id in ['foodoo-restaurant', 'foodoo-cafe']) &&
+      data.nameAr is string && data.nameAr.size() >= 2 && data.nameAr.size() <= 100 &&
+      data.nameEn is string && data.nameEn.size() >= 2 && data.nameEn.size() <= 100 &&
+      data.type is string && (data.type in ['restaurant', 'cafe']) &&
+      data.locationAr is string && data.locationAr.size() >= 2 && data.locationAr.size() <= 100 &&
+      data.locationEn is string && data.locationEn.size() >= 2 && data.locationEn.size() <= 100 &&
+      data.descriptionAr is string && data.descriptionAr.size() >= 2 && data.descriptionAr.size() <= 500 &&
+      data.descriptionEn is string && data.descriptionEn.size() >= 2 && data.descriptionEn.size() <= 500 &&
+      data.categories is list && data.categories.size() >= 1 && data.categories.size() <= 10 &&
+      data.categories[0] is string && data.categories[0].size() <= 60 &&
+      data.isOpen is bool &&
+      data.prepTimeMinutes is number && data.prepTimeMinutes >= 1 && data.prepTimeMinutes <= 180 &&
+      data.minOrderSar is number && data.minOrderSar >= 0 && data.minOrderSar <= 1000 &&
+      data.deliveryFeeSar is number && data.deliveryFeeSar >= 0 && data.deliveryFeeSar <= 200 &&
+      data.isDemoData is bool &&
+      data.managerUid is string && data.managerUid.size() <= 128 &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'id', 'businessId', 'nameAr', 'nameEn', 'descriptionAr', 'descriptionEn',
+        'category', 'priceSar', 'calories', 'imageKey', 'isAvailable',
+        'isFeatured', 'isPopular', 'isDemoData', 'customizationLabelAr',
+        'customizationLabelEn', 'customizationOptions', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'businessId', 'nameAr', 'nameEn', 'descriptionAr', 'descriptionEn',
+        'category', 'priceSar', 'calories', 'imageKey', 'isAvailable',
+        'isFeatured', 'isPopular', 'isDemoData', 'customizationLabelAr',
+        'customizationLabelEn', 'customizationOptions', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.businessId is string && (data.businessId in ['foodoo-restaurant', 'foodoo-cafe']) &&
+      data.nameAr is string && data.nameAr.size() >= 2 && data.nameAr.size() <= 120 &&
+      data.nameEn is string && data.nameEn.size() >= 2 && data.nameEn.size() <= 120 &&
+      data.descriptionAr is string && data.descriptionAr.size() >= 2 && data.descriptionAr.size() <= 500 &&
+      data.descriptionEn is string && data.descriptionEn.size() >= 2 && data.descriptionEn.size() <= 500 &&
+      data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+      data.priceSar is number && data.priceSar >= 1 && data.priceSar <= 5000 &&
+      data.calories is number && data.calories >= 0 && data.calories <= 5000 &&
+      data.imageKey is string && data.imageKey.size() >= 1 && data.imageKey.size() <= 500 &&
+      data.isAvailable is bool &&
+      data.isFeatured is bool &&
+      data.isPopular is bool &&
+      data.isDemoData is bool &&
+      data.customizationLabelAr is string && data.customizationLabelAr.size() <= 100 &&
+      data.customizationLabelEn is string && data.customizationLabelEn.size() <= 100 &&
+      data.customizationOptions is list && data.customizationOptions.size() <= 8 &&
+      (data.customizationOptions.size() == 0 || (data.customizationOptions[0] is string && data.customizationOptions[0].size() <= 80)) &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+        'uid', 'displayName', 'activeSquadId', 'assignedBusinessId',
+        'completedOrdersCount', 'squadPointsContributed', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'displayName', 'activeSquadId', 'assignedBusinessId',
+        'completedOrdersCount', 'squadPointsContributed', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+      data.activeSquadId is string && data.activeSquadId.size() <= 128 &&
+      (data.activeSquadId == '' || isValidId(data.activeSquadId)) &&
+      data.assignedBusinessId is string && (data.assignedBusinessId in ['', 'foodoo-restaurant', 'foodoo-cafe']) &&
+      data.completedOrdersCount is number && data.completedOrdersCount >= 0 && data.completedOrdersCount <= 100000 &&
+      data.squadPointsContributed is number && data.squadPointsContributed >= 0 && data.squadPointsContributed <= 100000 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll([
+        'uid', 'email', 'phone', 'defaultAddress', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'email', 'phone', 'defaultAddress', 'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      data.uid == request.auth.uid &&
+      data.email is string && data.email.size() <= 200 &&
+      data.phone is string && data.phone.size() <= 20 &&
+      data.defaultAddress is string && data.defaultAddress.size() <= 300 &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+        'id', 'orderNumber', 'customerId', 'merchantUid', 'customerName',
+        'customerPhone', 'businessId', 'businessNameAr', 'businessNameEn',
+        'fulfillmentType', 'deliveryAddress', 'notes', 'paymentMethod',
+        'itemsSummary', 'itemsCount', 'subtotalSar', 'deliveryFeeSar',
+        'totalSar', 'status', 'squadId', 'squadName', 'squadPointAwarded',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'orderNumber', 'customerId', 'merchantUid', 'customerName',
+        'customerPhone', 'businessId', 'businessNameAr', 'businessNameEn',
+        'fulfillmentType', 'deliveryAddress', 'notes', 'paymentMethod',
+        'itemsSummary', 'itemsCount', 'subtotalSar', 'deliveryFeeSar',
+        'totalSar', 'status', 'squadId', 'squadName', 'squadPointAwarded',
+        'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.orderNumber is string && data.orderNumber.size() >= 3 && data.orderNumber.size() <= 40 &&
+      isValidId(data.customerId) &&
+      data.merchantUid is string && data.merchantUid.size() <= 128 &&
+      data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+      data.customerPhone is string && data.customerPhone.size() >= 9 && data.customerPhone.size() <= 20 &&
+      data.customerPhone.matches('^(05|5|\\+9665|009665)[0-9]{8}$') &&
+      data.businessId is string && (data.businessId in ['foodoo-restaurant', 'foodoo-cafe']) &&
+      data.businessNameAr is string && data.businessNameAr.size() >= 2 && data.businessNameAr.size() <= 100 &&
+      data.businessNameEn is string && data.businessNameEn.size() >= 2 && data.businessNameEn.size() <= 100 &&
+      data.fulfillmentType is string && (data.fulfillmentType in ['pickup', 'delivery']) &&
+      data.deliveryAddress is string && data.deliveryAddress.size() <= 300 &&
+      data.notes is string && data.notes.size() <= 400 &&
+      data.paymentMethod is string && data.paymentMethod == 'DEMO_PAYMENT_ONLY' &&
+      data.itemsSummary is list && data.itemsSummary.size() >= 1 && data.itemsSummary.size() <= 20 &&
+      data.itemsSummary[0] is string && data.itemsSummary[0].size() <= 250 &&
+      data.itemsCount is number && data.itemsCount >= 1 && data.itemsCount <= 100 &&
+      data.subtotalSar is number && data.subtotalSar >= 1 && data.subtotalSar <= 50000 &&
+      data.deliveryFeeSar is number && data.deliveryFeeSar >= 0 && data.deliveryFeeSar <= 500 &&
+      data.totalSar is number && data.totalSar >= 1 && data.totalSar <= 50500 &&
+      data.status is string && (data.status in ['pending', 'accepted', 'preparing', 'ready', 'completed', 'cancelled']) &&
+      data.squadId is string && data.squadId.size() <= 128 &&
+      (data.squadId == '' || isValidId(data.squadId)) &&
+      data.squadName is string && data.squadName.size() <= 100 &&
+      data.squadPointAwarded is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidSquad(data) {
+      return data.keys().hasAll([
+        'id', 'name', 'category', 'description', 'inviteCode',
+        'creatorId', 'creatorName', 'memberCount', 'weeklyPoints',
+        'totalPoints', 'weeklyGoal', 'isActive', 'isDemoData',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'name', 'category', 'description', 'inviteCode',
+        'creatorId', 'creatorName', 'memberCount', 'weeklyPoints',
+        'totalPoints', 'weeklyGoal', 'isActive', 'isDemoData',
+        'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.id) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+      data.category is string && (data.category in ['Office', 'University', 'Friends', 'Family']) &&
+      data.description is string && data.description.size() <= 300 &&
+      data.inviteCode is string && data.inviteCode.size() >= 4 && data.inviteCode.size() <= 32 &&
+      isValidId(data.creatorId) &&
+      data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 100 &&
+      data.memberCount is number && data.memberCount >= 1 && data.memberCount <= 500 &&
+      data.weeklyPoints is number && data.weeklyPoints >= 0 && data.weeklyPoints <= 100000 &&
+      data.totalPoints is number && data.totalPoints >= 0 && data.totalPoints <= 100000 &&
+      data.weeklyGoal is number && data.weeklyGoal >= 1 && data.weeklyGoal <= 1000 &&
+      data.isActive is bool &&
+      data.isDemoData is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidSquadMember(data) {
+      return data.keys().hasAll([
+        'userId', 'squadId', 'displayName', 'role', 'pointsContributed', 'joinedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'squadId', 'displayName', 'role', 'pointsContributed', 'joinedAt'
+      ]) &&
+      isValidId(data.userId) &&
+      isValidId(data.squadId) &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+      data.role is string && (data.role in ['captain', 'member']) &&
+      data.pointsContributed is number && data.pointsContributed >= 0 && data.pointsContributed <= 100000 &&
+      data.joinedAt is timestamp;
+    }
+
+    // =========================================================================
+    // 4. COLLECTION MATCH BLOCKS
+    // =========================================================================
+
+    // --- Admins Lookup Collection ---
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // --- Businesses Collection ---
+    match /businesses/{businessId} {
+      allow get: if isValidId(businessId) && existing().isDemoData == true;
+      allow list: if existing().isDemoData == true;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(businessId) &&
+        isValidBusiness(incoming()) &&
+        incoming().id == businessId &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(businessId) &&
+        isValidBusiness(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().type == existing().type &&
+        incoming().isDemoData == existing().isDemoData &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action 1: Assigned business manager updates store settings & categories
+          (
+            isAssignedMerchant(businessId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'nameAr', 'nameEn', 'locationAr', 'locationEn',
+              'descriptionAr', 'descriptionEn', 'categories',
+              'isOpen', 'prepTimeMinutes', 'minOrderSar',
+              'deliveryFeeSar', 'managerUid', 'updatedAt'
+            ])
+          ) ||
+          // Action 2: Pilot tester claims managerUid when switching assigned business
+          (
+            incoming().managerUid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['managerUid', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // --- Products Collection ---
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().businessId in ['foodoo-restaurant', 'foodoo-cafe']);
+      allow list: if existing().businessId in ['foodoo-restaurant', 'foodoo-cafe'];
+
+      allow create: if isVerifiedUser() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().id == productId &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/businesses/$(incoming().businessId)) &&
+        (incoming().isDemoData == true || isAssignedMerchant(incoming().businessId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().businessId == existing().businessId &&
+        incoming().updatedAt == request.time &&
+        isAssignedMerchant(existing().businessId) && (
+          isAdmin() ||
+          // Action 1: Toggle availability quickly
+          incoming().diff(existing()).affectedKeys().hasOnly(['isAvailable', 'updatedAt']) ||
+          // Action 2: Full product details update by assigned merchant
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'nameAr', 'nameEn', 'descriptionAr', 'descriptionEn',
+            'category', 'priceSar', 'calories', 'imageKey',
+            'isAvailable', 'isFeatured', 'isPopular',
+            'customizationLabelAr', 'customizationLabelEn',
+            'customizationOptions', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(productId) &&
+        isAssignedMerchant(existing().businessId);
+    }
+
+    // --- User Public Profiles Collection ---
+    match /user_profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && (existing().uid == request.auth.uid || isAdmin());
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == userId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            request.auth.uid == userId &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'activeSquadId', 'assignedBusinessId',
+              'completedOrdersCount', 'squadPointsContributed', 'updatedAt'
+            ])
+          ) ||
+          (
+            incoming().completedOrdersCount == existing().completedOrdersCount + 1 &&
+            (
+              incoming().squadPointsContributed == existing().squadPointsContributed ||
+              incoming().squadPointsContributed == existing().squadPointsContributed + 1
+            ) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'completedOrdersCount', 'squadPointsContributed', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // --- User Isolated Private PII Collection ---
+    match /user_private/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserPrivate(incoming()) &&
+        incoming().uid == userId &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidUserPrivate(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().updatedAt == request.time &&
+        request.auth.uid == userId &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'email', 'phone', 'defaultAddress', 'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // --- Orders Collection ---
+    match /orders/{orderId} {
+      allow get: if isSignedIn() &&
+        isValidId(orderId) && (
+          existing().customerId == request.auth.uid ||
+          existing().merchantUid == request.auth.uid ||
+          isAssignedMerchant(existing().businessId)
+        );
+
+      allow list: if isSignedIn() && (
+        existing().customerId == request.auth.uid ||
+        existing().merchantUid == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+
+      allow create: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().id == orderId &&
+        incoming().customerId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().squadPointAwarded == false &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/businesses/$(incoming().businessId));
+
+      allow update: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().orderNumber == existing().orderNumber &&
+        incoming().customerId == existing().customerId &&
+        incoming().businessId == existing().businessId &&
+        incoming().totalSar == existing().totalSar &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            // Terminal State Locking: Completed or Cancelled orders cannot change status
+            !(existing().status in ['completed', 'cancelled']) && (
+              // Action 1: Merchant accepts pending order
+              (
+                isAssignedMerchant(existing().businessId) &&
+                existing().status == 'pending' &&
+                incoming().status == 'accepted' &&
+                incoming().squadPointAwarded == false &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+              ) ||
+              // Action 2: Merchant marks accepted order as preparing
+              (
+                isAssignedMerchant(existing().businessId) &&
+                existing().status == 'accepted' &&
+                incoming().status == 'preparing' &&
+                incoming().squadPointAwarded == false &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+              ) ||
+              // Action 3: Merchant marks preparing order as ready
+              (
+                isAssignedMerchant(existing().businessId) &&
+                existing().status == 'preparing' &&
+                incoming().status == 'ready' &&
+                incoming().squadPointAwarded == false &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+              ) ||
+              // Action 4: Merchant marks ready order as completed (awards Squad point if in Squad)
+              (
+                isAssignedMerchant(existing().businessId) &&
+                existing().status == 'ready' &&
+                incoming().status == 'completed' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'squadPointAwarded', 'updatedAt'])
+              ) ||
+              // Action 5: Cancel order (allowed from pending, accepted, or preparing)
+              (
+                (existing().status in ['pending', 'accepted', 'preparing']) &&
+                incoming().status == 'cancelled' &&
+                incoming().squadPointAwarded == false &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+                (
+                  isAssignedMerchant(existing().businessId) ||
+                  (existing().status == 'pending' && existing().customerId == request.auth.uid)
+                )
+              )
+            )
+          ) ||
+          // Action 6: Sync merchantUid when a pilot manager claims the assigned business
+          (
+            isAssignedMerchant(existing().businessId) &&
+            incoming().merchantUid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['merchantUid', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // --- Squads Collection ---
+    match /squads/{squadId} {
+      allow get: if isValidId(squadId) && existing().isActive == true;
+      allow list: if existing().isActive == true;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(squadId) &&
+        isValidSquad(incoming()) &&
+        incoming().id == squadId &&
+        (incoming().creatorId == request.auth.uid || incoming().isDemoData == true) &&
+        incoming().isActive == true &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(squadId) &&
+        isValidSquad(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().creatorId == existing().creatorId &&
+        incoming().inviteCode == existing().inviteCode &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action 1: Member count update when joining or leaving Squad
+          (
+            (incoming().memberCount == existing().memberCount + 1 || incoming().memberCount == existing().memberCount - 1) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['memberCount', 'updatedAt'])
+          ) ||
+          // Action 2: Increment Squad points by 1 when an order is completed
+          (
+            incoming().weeklyPoints == existing().weeklyPoints + 1 &&
+            incoming().totalPoints == existing().totalPoints + 1 &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['weeklyPoints', 'totalPoints', 'updatedAt'])
+          ) ||
+          // Action 3: Captain updates Squad description or weekly goal
+          (
+            existing().creatorId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'weeklyGoal', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+
+      // --- Squad Members Subcollection (Master Gate Enforced) ---
+      match /members/{memberId} {
+        allow get: if isValidId(squadId) &&
+          isValidId(memberId) &&
+          exists(/databases/$(database)/documents/squads/$(squadId));
+
+        allow list: if existing().squadId == squadId;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(squadId) &&
+          isValidId(memberId) &&
+          isValidSquadMember(incoming()) &&
+          incoming().squadId == squadId &&
+          incoming().userId == memberId &&
+          (memberId == request.auth.uid || get(/databases/$(database)/documents/squads/$(squadId)).data.isDemoData == true) &&
+          incoming().joinedAt == request.time &&
+          exists(/databases/$(database)/documents/squads/$(squadId));
+
+        allow update: if isVerifiedUser() &&
+          isValidId(squadId) &&
+          isValidId(memberId) &&
+          isValidSquadMember(incoming()) &&
+          incoming().userId == existing().userId &&
+          incoming().squadId == existing().squadId &&
+          incoming().role == existing().role &&
+          incoming().joinedAt == existing().joinedAt &&
+          exists(/databases/$(database)/documents/squads/$(squadId)) && (
+            isAdmin() ||
+            // Action: Increment member pointsContributed by 1 on order completion
+            (
+              incoming().pointsContributed == existing().pointsContributed + 1 &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['pointsContributed'])
+            )
+          );
+
+        allow delete: if isVerifiedUser() &&
+          isValidId(squadId) &&
+          isValidId(memberId) &&
+          request.auth.uid == memberId &&
+          exists(/databases/$(database)/documents/squads/$(squadId));
+      }
+    }
+  }
+}
